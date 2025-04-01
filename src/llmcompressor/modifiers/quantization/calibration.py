@@ -93,7 +93,6 @@ def call_observer(module: Module, base_name: str, value: Optional[torch.Tensor] 
         raise ValueError("Must provide a value to observe if not using weight observer")
 
     observer = getattr(module, f"{base_name}_observer")
-    breakpoint()
     updated_scale, updated_zero_point = observer(value, g_idx=g_idx)
 
     # update scale and zero point
@@ -133,7 +132,6 @@ def update_weight_zp_scale(module: Module):
 
     if module.quantization_scheme.weights is not None:
         # set weight scale and zero_point up front, calibration data doesn't affect it
-        breakpoint()
         call_observer(module=module, base_name="weight")
 
 
