@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional
 
 import torch
-import torch.utils.data.dataloader
 from tqdm import tqdm
 
 from llmcompressor.modifiers.utils.hooks import HooksMixin
@@ -13,7 +12,11 @@ from llmcompressor.pipelines.layer_sequential.helpers import (
     to_next_layer_kwargs,
 )
 from llmcompressor.pipelines.sequential.helpers import infer_oneshot_device
-from llmcompressor.utils.helpers import align_modules, calibration_forward_context
+from llmcompressor.utils.helpers import (
+    DisableQuantization,
+    align_modules,
+    calibration_forward_context,
+)
 
 if TYPE_CHECKING:
     from llmcompressor.modifiers import Modifier
@@ -58,7 +61,7 @@ def run_pipeline(
     # find layers
     layers = match_modules(model, sequential_targets)
 
-    with calibration_forward_context(model):
+    with calibration_forward_context(model), DisableQuantization(model):
         # prepare intermediates cache
         intermediates: IntermediatesCache = capture_first_layer_intermediates(
             model, layers[0], dataloader

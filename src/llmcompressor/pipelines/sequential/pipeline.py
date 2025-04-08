@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional
 
 import torch
-import torch.utils.data.dataloader
 from tqdm import tqdm
 from transformers import PreTrainedModel
 
@@ -11,7 +10,11 @@ from llmcompressor.pipelines.sequential.helpers import (
     infer_oneshot_device,
     trace_subgraphs,
 )
-from llmcompressor.utils.helpers import align_modules, calibration_forward_context
+from llmcompressor.utils.helpers import (
+    DisableQuantization,
+    align_modules,
+    calibration_forward_context,
+)
 
 if TYPE_CHECKING:
     from llmcompressor.modifiers import Modifier
@@ -64,7 +67,7 @@ def run_pipeline(
     model_device = oneshot_device or model.device
     intermediates = IntermediatesCache.from_dataloader(dataloader, model_device)
 
-    with calibration_forward_context(model):
+    with calibration_forward_context(model), DisableQuantization(model):
         num_subgraphs = len(subgraphs)
         for subgraph_index, subgraph in enumerate(subgraphs):
             # prepare tqdm description texts
