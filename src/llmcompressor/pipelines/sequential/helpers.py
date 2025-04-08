@@ -16,6 +16,7 @@ from transformers.utils.fx import HFTracer
 
 from llmcompressor.modifiers.utils.hooks import HooksMixin
 from llmcompressor.utils.helpers import calibration_forward_context, preserve_attr
+from llmcompressor.utils.offload import has_device_parameters
 
 __all__ = ["trace_subgraphs", "Subgraph"]
 
@@ -403,11 +404,12 @@ def get_subgraph_modules(subgraph: Graph, parent_graph: GraphModule) -> List[Mod
 def infer_oneshot_device(
     model: PreTrainedModel, oneshot_device: Optional[torch.device]
 ) -> Optional[torch.device]:
-    if is_gpu_dispatched(model):
+    if has_device_parameters(model):
         logger.warning(
-            "Calibrating a model dispatched to the gpu can potentially lead to OOM "
-            "errors. Consider loading the model without a `device_map` and instead "
-            "executing with `cuda:0` (set `oneshot_device` to override this default)"
+            "Calibrating a model with gpu parameters using the sequential pipeline can "
+            "potentially lead to OOM errors. Consider loading the model without a "
+            "`device_map` and instead executing with `cuda:0` (set `oneshot_device` "
+            "to override this default)"
         )
         return None
 
@@ -417,17 +419,3 @@ def infer_oneshot_device(
         logger.info(f"No oneshot_device passed, using {oneshot_device}")
 
     return oneshot_device
-
-
-def is_gpu_dispatched(model: PreTrainedModel) -> bool:
-    for module in model.modules():
-        if any(
-            param.device not in (torch.device("meta"), torch.device("cpu"))
-            for param in module.parameters()
-        ):
-            return True
-
-        if has_offloaded_params(module) and module._hf_hook.execution_device != "cpu":
-            return True
-
-    return False

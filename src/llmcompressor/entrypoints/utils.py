@@ -3,6 +3,9 @@ import os
 from pathlib import PosixPath
 from typing import Optional, Tuple
 
+import torch
+from accelerate import dispatch_model
+from accelerate.hooks import remove_hook_from_module
 from loguru import logger
 from torch.nn import Module
 from transformers import (
@@ -27,6 +30,7 @@ from llmcompressor.transformers.utils.helpers import (
 )
 from llmcompressor.typing import Processor
 from llmcompressor.utils.fsdp.helpers import is_fsdp_model
+from llmcompressor.utils.offload import has_device_execution
 
 
 def pre_process(model_args: "ModelArguments"):
@@ -64,6 +68,15 @@ def pre_process(model_args: "ModelArguments"):
 
     # wrap model.save_pretrained
     modify_save_pretrained(model_args.model)
+
+    # dispatch to oneshot device if loaded onto CPU
+    # this needs to be done before qparams are initialized
+    if not has_device_execution(model) and torch.cuda.is_available():
+        model_args.oneshot_device = model_args.oneshot_device or torch.device("cuda:0")
+        remove_hook_from_module(model_args.model, recurse=True)
+        model_args.model = dispatch_model(
+            model_args.model, main_device=model_args.oneshot_device, force_hooks=True
+        )
 
 
 def post_process(
