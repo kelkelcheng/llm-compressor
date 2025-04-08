@@ -421,7 +421,10 @@ def infer_oneshot_device(
 
 def is_gpu_dispatched(model: PreTrainedModel) -> bool:
     for module in model.modules():
-        if any(param.device not in ("meta", "cpu") for param in module.parameters()):
+        if any(
+            param.device not in (torch.device("meta"), torch.device("cpu"))
+            for param in module.parameters()
+        ):
             return True
 
         if has_offloaded_params(module) and module._hf_hook.execution_device != "cpu":
