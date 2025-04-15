@@ -89,7 +89,7 @@ def parse_params(
 
             if not isinstance(expected_cadence, list):
                 expected_cadence = [expected_cadence]
-            if cadence in expected_cadence:
+            if cadence == "all" or cadence in expected_cadence:
                 if type == "custom":
                     config = CustomTestConfig(**config)
                 else:
