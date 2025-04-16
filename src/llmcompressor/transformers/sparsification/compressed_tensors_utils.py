@@ -115,11 +115,16 @@ def modify_save_pretrained(model: PreTrainedModel):
 
             # make sure we're on the main process when saving
             if state_dict is not None and len(state_dict) > 0:
-                compressed_state_dict = compressor.compress(model, state_dict)
+                #compressed_state_dict = compressor.compress(model, state_dict)
+                logger.info("Compressing model")
+                model = compressor.apply_compression_status(model)
+                breakpoint()
+
                 logger.info("Saving compressed model to disk")
+                
                 original_save_pretrained.__get__(model, model_class)(
                     save_directory,
-                    state_dict=compressed_state_dict,
+                    #state_dict=compressed_state_dict,
                     safe_serialization=safe_serialization,
                     **kwargs,
                 )
